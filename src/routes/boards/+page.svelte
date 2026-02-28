@@ -2,4 +2,4 @@
     import IconBoard from "~icons/fluent/board-24-filled";
 </script>
 
-<h1 class="text-3xl"><IconBoard /> Boards</h1>
+<h1 class="flex gap-2 text-3xl"><IconBoard />Boards</h1>

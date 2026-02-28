@@ -1,6 +1,10 @@
 <script>
   import "../app.css";
-  import IconHome from "~icons/fluent/home-24-filled";
+  import IconRecent from "~icons/fluent/clock-24-filled";
 </script>
 
-<h1 class="text-3xl"><IconHome /> Home</h1>
+<section>
+  <h1 class="flex gap-2 text-3xl">
+    <IconRecent />Recent Work
+  </h1>
+</section>

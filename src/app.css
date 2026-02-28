@@ -1,2 +1,29 @@
 @import "tailwindcss";
 @plugin "daisyui";
+
+@font-face {
+  font-family: "Outfit";
+  font-display: swap;
+  src: url("$lib/assets/fonts/Outfit.ttf") format("truetype");
+}
+
+@font-face {
+  font-family: "Shantell Sans";
+  font-display: swap;
+  src: url("$lib/assets/fonts/ShantellSans.ttf") format("truetype");
+}
+
+@font-face {
+  font-family: "Leckerli One";
+  font-display: swap;
+  src: url("$lib/assets/fonts/LeckerliOne.ttf") format("truetype");
+}
+
+@theme {
+    --font-hand: "Shantell Sans", fantasy;
+    --font-cursive: "Leckerli One", cursive;
+}
+
+body {
+    font-family: "Outfit", serif;
+}
