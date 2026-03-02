@@ -1,1 +1,0 @@
-import{a as o,b as e}from"../chunks/CAX5YwXH.js";import"../chunks/6Z_qh3Fj.js";import{c as s,n as l,r as m}from"../chunks/DJnM6jJt.js";import{T as p}from"../chunks/oS1iKpRA.js";var i=e('<h1 class="flex gap-2 text-3xl"><!>Lists</h1>');function c(a){var t=i(),r=s(t);p(r,{}),l(),m(t),o(a,t)}export{c as component};

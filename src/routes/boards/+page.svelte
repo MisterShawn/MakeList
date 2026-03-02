@@ -2,4 +2,10 @@
     import IconBoard from "~icons/fluent/board-24-filled";
 </script>
 
-<h1 class="flex gap-2 text-3xl"><IconBoard />Boards</h1>
+<svelte:head>
+    <title>Boards — MakeList</title>
+</svelte:head>
+
+<section>
+    <h1><IconBoard />Boards</h1>
+</section>

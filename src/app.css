@@ -24,6 +24,55 @@
     --font-cursive: "Leckerli One", cursive;
 }
 
+@plugin "daisyui/theme" {
+  name: "makelist";
+  default: true;
+  prefersdark: false;
+  color-scheme: light; 
+
+  --color-base-100: var(--color-slate-50);
+  --color-base-200: var(--color-slate-100);
+  --color-base-300: var(--color-slate-200);
+  --color-base-content: oklch(20% 0.05 240);
+  --color-primary: var(--color-indigo-600);
+  --color-primary-content: var(--color-indigo-200);
+  --color-secondary: var(--color-cyan-500);
+  --color-secondary-content: var(--color-cyan-200);
+  --color-accent: var(--color-pink-500);
+  --color-accent-content: var(--color-pink-200);
+  --color-neutral: oklch(50% 0.05 240);
+  --color-neutral-content: oklch(98% 0.01 240);
+  --color-info: oklch(70% 0.2 220);
+  --color-info-content: oklch(98% 0.01 220);
+  --color-success: oklch(65% 0.25 140);
+  --color-success-content: oklch(98% 0.01 140);
+  --color-warning: oklch(80% 0.25 80);
+  --color-warning-content: oklch(20% 0.05 80);
+  --color-error: oklch(65% 0.3 30);
+  --color-error-content: oklch(98% 0.01 30);
+
+  /* border radius */
+  --radius-selector: 1rem;
+  --radius-field: 0.25rem;
+  --radius-box: 0.5rem;
+
+  /* base sizes */
+  --size-selector: 0.25rem;
+  --size-field: 0.25rem;
+
+  /* border size */
+  --border: 1px;
+
+  /* effects */
+  --depth: 1;
+  --noise: 0;
+}
+
+
 body {
     font-family: "Outfit", serif;
+}
+
+section h1 {
+  @apply flex items-center gap-2 text-[5vw] text-base-content/10;
 }
