@@ -7,5 +7,5 @@
 </svelte:head>
 
 <section>
-    <h1><IconBoard />Boards</h1>
+    <IconBoard />
 </section>

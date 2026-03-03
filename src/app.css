@@ -73,6 +73,6 @@ body {
     font-family: "Outfit", serif;
 }
 
-section h1 {
-  @apply flex items-center gap-2 text-[5vw] text-base-content/10;
+section > svg {
+  @apply text-[10vw] text-base-content/10;
 }

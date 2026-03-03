@@ -7,5 +7,5 @@
 </svelte:head>
 
 <section>
-	<h1><IconSettings />Settings</h1>
+	<IconSettings />
 </section>

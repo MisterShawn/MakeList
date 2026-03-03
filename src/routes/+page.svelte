@@ -8,7 +8,5 @@
 </svelte:head>
 
 <section>
-	<h1>
-		<IconRecent />Recent Work
-	</h1>
+	<IconRecent />
 </section>
