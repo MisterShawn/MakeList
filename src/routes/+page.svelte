@@ -1,5 +1,4 @@
 <script>
-	import "../app.css";
 	import IconRecent from "~icons/fluent/clock-24-filled";
 </script>
 

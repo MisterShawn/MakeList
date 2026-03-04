@@ -4,8 +4,9 @@ import { Dexie, type EntityTable } from "dexie"
 interface List {
     id: number
     title: string
+    description: string
     header: string
-    text: string
+    items: string
     tags: string
     folder: string
     created_at: number
@@ -21,7 +22,7 @@ const db = new Dexie("MakeList") as Dexie & {
 
 // Schema declaration:
 db.version(1).stores({
-    lists: "++id, title, header, text, tags, folder, created_at, updated_at", // primary key "id" (for the runtime!)
+    lists: "++id, title, description, header, *items, *tags, folder, created_at, updated_at", // primary key "id" (for the runtime!)
 })
 
 export type { List }

@@ -1,4 +1,6 @@
 <script lang="ts">
+	import "../app.css";
+
 	import favicon from "$lib/assets/favicon.svg";
 	import logo from "$lib/assets/MakeListLogo.svg";
 	import IconRecent from "~icons/fluent/clock-24-filled";
@@ -117,7 +119,7 @@
 </nav>
 
 <main
-	class="grid content-center justify-center col-start-2 row-start-2 bg-base-300 p-8"
+	class="flex flex-wrap items-start gap-8 col-start-2 row-start-2 bg-base-300 p-8"
 >
 	{@render children()}
 </main>

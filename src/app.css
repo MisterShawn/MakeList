@@ -76,3 +76,7 @@ body {
 section > svg {
   @apply text-[10vw] text-base-content/10;
 }
+
+input, textarea {
+  @apply focus:placeholder:text-transparent;
+}
