@@ -35,17 +35,15 @@
 	<link rel="icon" href={favicon} />
 </svelte:head>
 
-<div id="loading-bar" class="flex h-1 w-full absolute bg-base-300">
+<div id="loading-bar" class="flex z-20 h-1 w-full fixed bg-base-300">
 	<div
 		class="w-full bg-linear-to-r/shorter from-primary from-30% via-accent to-secondary to-70%"
 	></div>
 </div>
 
 <header
-	class="flex gap-8 px-3 py-5 col-start-1 col-span-2 row-start-1 border-b-2 border-base-content/10"
+	class="sticky top-0 z-10 flex gap-8 px-3 py-5 col-start-2 row-start-1 bg-base-100 border-b-2 border-base-content/10"
 >
-	<img id="logo" class="h-8" src={logo} alt="MakeList logo" />
-
 	<div class="breadcrumbs text-lg pb-0">
 		<ul>
 			{#if !breadcrumbs.length}
@@ -73,8 +71,13 @@
 		</ul>
 	</div>
 </header>
-<nav class="col-start-1 row-start-2">
-	<ul class="h-full menu menu-lg p-0 border-r-2 border-base-content/10">
+<nav class="fixed top-0 h-dvh w-20 bg-base-100 col-start-1 row-start-2">
+	<ul
+		class="h-full w-full flex-nowrap menu menu-lg p-0 border-r-2 border-base-content/10"
+	>
+		<li class="h-20 border-b-2 border-base-content/10">
+			<img id="logo" class="h-20" src={logo} alt="MakeList logo" />
+		</li>
 		<li class="border-b-2 border-base-content/10">
 			<a
 				class="tooltip tooltip-right p-4 justify-center"
@@ -119,7 +122,7 @@
 </nav>
 
 <main
-	class="flex flex-wrap items-start gap-8 col-start-2 row-start-2 bg-base-300 p-8"
+	class="flex flex-col flex-wrap items-start gap-8 col-start-2 row-start-2 p-8 md:flex-row"
 >
 	{@render children()}
 </main>
