@@ -80,3 +80,18 @@ section > svg {
 input, textarea {
   @apply focus:placeholder:text-transparent;
 }
+
+nav #logo svg {
+  @apply h-full w-full;
+}
+
+main > svg {
+  --color-primary: var(--color-base-100);
+  --color-secondary: var(--color-base-100);
+  --color-accent: var(--color-base-100);
+  @apply fixed top-1/4 left-1/4 h-full w-full max-h-[50vh] max-w-[50vw] mt-10 opacity-30;
+}
+
+main > *:not(svg) {
+  @apply z-10;
+}

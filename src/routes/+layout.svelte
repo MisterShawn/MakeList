@@ -1,8 +1,10 @@
 <script lang="ts">
 	import "../app.css";
+	import ProgressBar from "$lib/components/ProgressBar.svelte";
 
 	import favicon from "$lib/assets/favicon.svg";
 	import logo from "$lib/assets/MakeListLogo.svg";
+	import LogoVar from "$lib/assets/MakeListLogoVar.svg?raw";
 	import IconRecent from "~icons/fluent/clock-24-filled";
 	import IconList from "~icons/fluent/text-bullet-list-square-24-filled";
 	import IconBoard from "~icons/fluent/board-24-filled";
@@ -35,14 +37,10 @@
 	<link rel="icon" href={favicon} />
 </svelte:head>
 
-<div id="loading-bar" class="flex z-20 h-1 w-full fixed bg-base-300">
-	<div
-		class="w-full bg-linear-to-r/shorter from-primary from-30% via-accent to-secondary to-70%"
-	></div>
-</div>
+<ProgressBar />
 
 <header
-	class="sticky top-0 z-10 flex gap-8 px-3 py-5 col-start-2 row-start-1 bg-base-100 border-b-2 border-base-content/10"
+	class="sticky top-0 z-20 flex items-center mt-1 gap-8 px-4 h-20 col-start-2 row-start-1 bg-base-100 border-b-2 border-base-content/10"
 >
 	<div class="breadcrumbs text-lg pb-0">
 		<ul>
@@ -71,12 +69,14 @@
 		</ul>
 	</div>
 </header>
-<nav class="fixed top-0 h-dvh w-20 bg-base-100 col-start-1 row-start-2">
+<nav
+	class="fixed top-0 h-dvh w-20 mt-1 bg-base-100 col-start-1 row-start-2 z-20"
+>
 	<ul
 		class="h-full w-full flex-nowrap menu menu-lg p-0 border-r-2 border-base-content/10"
 	>
-		<li class="h-20 border-b-2 border-base-content/10">
-			<img id="logo" class="h-20" src={logo} alt="MakeList logo" />
+		<li id="logo" class="h-20 border-b-2 border-base-content/10">
+			{@html LogoVar}
 		</li>
 		<li class="border-b-2 border-base-content/10">
 			<a
@@ -122,7 +122,8 @@
 </nav>
 
 <main
-	class="flex flex-col flex-wrap items-start gap-8 col-start-2 row-start-2 p-8 md:flex-row"
+	class="col-start-2 row-start-2 w-full flex flex-wrap justify-center content-start gap-8 p-4 sm:p-8 md:justify-normal md:flex-row"
 >
+	{@html LogoVar}
 	{@render children()}
 </main>
