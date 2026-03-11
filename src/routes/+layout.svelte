@@ -40,7 +40,7 @@
 <ProgressBar />
 
 <header
-	class="sticky top-0 z-20 flex items-center mt-1 gap-8 px-4 h-20 col-start-2 row-start-1 bg-base-100 border-b-2 border-base-content/10"
+	class="fixed w-full top-0 left-20 z-20 flex items-center mt-1 gap-8 px-4 h-19 col-start-2 row-start-1 bg-base-100 border-b-2 border-base-content/20"
 >
 	<div class="breadcrumbs text-lg pb-0">
 		<ul>
@@ -72,13 +72,11 @@
 <nav
 	class="fixed top-0 h-dvh w-20 mt-1 bg-base-100 col-start-1 row-start-2 z-20"
 >
-	<ul
-		class="h-full w-full flex-nowrap menu menu-lg p-0 border-r-2 border-base-content/10"
-	>
-		<li id="logo" class="h-20 border-b-2 border-base-content/10">
+	<ul class="h-full w-full flex-nowrap menu menu-lg p-0">
+		<li id="logo" class="h-20">
 			{@html LogoVar}
 		</li>
-		<li class="border-b-2 border-base-content/10">
+		<li>
 			<a
 				class="tooltip tooltip-right p-4 justify-center"
 				aria-label="Recent Work"
@@ -108,9 +106,9 @@
 				<IconBoard class="text-2xl" />
 			</a>
 		</li>
-		<li class="border-t-2 border-base-content/10">
+		<li>
 			<a
-				class="tooltip tooltip-right p-4 justify-center"
+				class="tooltip tooltip-top h-20 flex justify-center align-center"
 				aria-label="Settings"
 				data-tip="Settings"
 				href="/settings"
@@ -122,8 +120,14 @@
 </nav>
 
 <main
-	class="col-start-2 row-start-2 w-full flex flex-wrap justify-center content-start gap-8 p-4 sm:p-8 md:justify-normal md:flex-row"
+	class="col-start-2 row-start-2 w-full grid auto-rows-min border-l-2 border-base-content/10 md:justify-normal md:flex-row"
 >
 	{@html LogoVar}
 	{@render children()}
 </main>
+
+<footer
+	class="col-start-2 row-start-3 fixed left-20 bottom-0 w-full z-10 flex items-center mt-1 gap-8 px-4 h-12 bg-base-100 border-t-2 border-base-content/20 shadow-[0_-10px_10px_rgba(0,0,0,0.125)] md:shadow-none"
+>
+	<p>Footer</p>
+</footer>
