@@ -29,7 +29,7 @@
 </script>
 
 {#if visible}
-    <div id="progress-bar" class="fixed flex z-20 h-1 w-full">
+    <div id="progress-bar" class="fixed flex z-30 h-1 w-full">
         <div
             class="bg-linear-to-r/shorter from-primary from-30% via-accent to-secondary to-70% transition-opacity duration-300"
             style="width: {progress.current * 100}%; opacity: {navigating

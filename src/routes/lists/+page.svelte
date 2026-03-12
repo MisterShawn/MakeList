@@ -16,7 +16,7 @@
 </script>
 
 <ul
-    class="menu menu-horizontal w-full bg-base-300 border-b border-base-content/10 p-4"
+    class="menu menu-horizontal w-full bg-base-200 border-b-2 border-base-300 p-4"
 >
     <li>
         <button
@@ -43,24 +43,29 @@
 <section>
     <div class="w-full">
         {#if $lists}
-            <ul class="list w-full border-b border-base-content/10">
+            <ul class="grid border-b border-base-300">
                 {#each $lists as list (list.id)}
                     {#if !list.is_deleted}
-                        <li class="list-row bg-base-100 rounded-none">
-                            <input type="checkbox" class="checkbox" />
-                            <div class="card-title">
+                        <li
+                            class="flex items-center p-4 gap-4 bg-base-100 rounded-none cursor-pointer border-b border-base-300 last:shadow-md"
+                        >
+                            <input
+                                type="checkbox"
+                                class="checkbox rounded-md"
+                            />
+                            <div class="flex-1 text-lg">
                                 {list.name}
                             </div>
                             <div class="list-actions">
                                 <button
                                     aria-label="Move to folder"
-                                    class="btn btn-lg btn-square btn-ghost tooltip w-10 h-10"
+                                    class="btn btn-lg btn-square btn-ghost tooltip"
                                     data-tip="Move to folder"
                                     ><IconFolderMove /></button
                                 >
                                 <button
                                     aria-label="Send to trash"
-                                    class="btn btn-lg btn-square btn-ghost tooltip w-10 h-10"
+                                    class="btn btn-lg btn-square btn-ghost tooltip"
                                     data-tip="Send to trash"
                                     onclick={() => trashList(list.id)}
                                 >
@@ -81,11 +86,11 @@
     @import "tailwindcss";
     @plugin "daisyui";
 
-    .list-row:hover {
-        @apply shadow bg-base-100 bg-linear-to-b from-base-100 to-base-300;
+    li:hover {
+        @apply bg-base-100 bg-linear-to-b from-base-100 to-base-200;
     }
 
-    .list-row:hover .list-actions {
+    li:hover .list-actions {
         @apply opacity-100;
     }
 
@@ -94,6 +99,6 @@
     }
 
     li:has(input[type="checkbox"]:checked) {
-        @apply bg-base-300;
+        @apply bg-linear-to-b from-base-200 to-base-100 inset-shadow-sm inset-shadow-base-100;
     }
 </style>
