@@ -1,15 +1,12 @@
 <!doctype html>
-<html lang="en" class="h-full" data-theme="makelist">
-
-<head>
-	<meta charset="utf-8" />
-	<meta name="viewport" content="width=device-width, initial-scale=1" />
-	%sveltekit.head%
-</head>
-
-<body data-sveltekit-preload-data="hover"
-	class="h-full bg-base-200 grid grid-cols-1 grid-rows-[5rem_1fr_5rem] md:grid-cols-[5rem_1fr] md:grid-rows-[5rem_1fr]">
-	<div style="display: contents">%sveltekit.body%</div>
-</body>
-
+<html lang="en">
+	<head>
+		<meta charset="utf-8" />
+		<link rel="icon" href="%sveltekit.assets%/favicon.svg" />
+		<meta name="viewport" content="width=device-width, initial-scale=1" />
+		%sveltekit.head%
+	</head>
+	<body data-sveltekit-preload-data="hover">
+		<div style="display: contents">%sveltekit.body%</div>
+	</body>
 </html>
