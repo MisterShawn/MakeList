@@ -5,12 +5,14 @@
   "type": "module",
   "scripts": {
     "dev": "vite dev",
+    "prebuild": "mkdir -p static/openmoji && cp -r node_modules/openmoji/color/svg/. static/openmoji",
     "build": "vite build",
     "preview": "vite preview",
     "check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
     "check:watch": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json --watch"
   },
   "devDependencies": {
+    "openmoji": "17.0.0",
     "@internationalized/date": "^3.12.1",
     "@lucide/svelte": "^1.8.0",
     "@sveltejs/adapter-static": "^3.0.8",
