@@ -1,124 +1,86 @@
 <script lang="ts">
-	import '../app.css';
+	import './layout.css';
+	import favicon from '$lib/assets/favicon.svg';
 	import { page } from '$app/state';
-	import { onMount } from 'svelte';
-	import { MediaQuery } from 'svelte/reactivity';
-	import { initTheme, setTheme, getStoredTheme } from '$lib/stores/theme';
-	import type { Theme } from '$lib/stores/theme';
-	import * as Sidebar from '$lib/components/ui/sidebar';
-	import MobileCloseSidebar from '$lib/components/MobileCloseSidebar.svelte';
-	import GlobalSearch from '$lib/components/GlobalSearch.svelte';
-	import { Toaster } from '$lib/components/ui/sonner';
-	import { liveQuery } from 'dexie';
-	import { getNavCounts, ensureGuestPlayer } from '$lib/db/queries';
-	import {
-		LayoutDashboard,
-		List,
-		LayoutGrid,
-		Users,
-		History,
-		Tags,
-		Image,
-		Trash2,
-		Settings,
-		HelpCircle,
-		Sun,
-		Moon
-	} from 'lucide-svelte';
+	import { resolve } from '$app/paths';
+	import * as Sidebar from '$lib/components/ui/sidebar/index.js';
+	import { Toaster } from '$lib/components/ui/sonner/index.js';
+	import ScrollTextIcon from '@lucide/svelte/icons/scroll-text';
+	import ListChecksIcon from '@lucide/svelte/icons/list-checks';
+	import ImagesIcon from '@lucide/svelte/icons/images';
+	import GamepadIcon from '@lucide/svelte/icons/gamepad-2';
+	import UsersIcon from '@lucide/svelte/icons/users';
+	import TagsIcon from '@lucide/svelte/icons/tags';
+	import Trash2Icon from '@lucide/svelte/icons/trash-2';
+	import SettingsIcon from '@lucide/svelte/icons/settings';
 
 	let { children } = $props();
 
-	type NavCounts = Awaited<ReturnType<typeof getNavCounts>>;
-	let counts = $state<NavCounts | null>(null);
-
-	$effect(() => {
-		const sub = liveQuery(() => getNavCounts()).subscribe({
-			next: (v) => { counts = v; },
-			error: (e) => console.error(e)
-		});
-		return () => sub.unsubscribe();
-	});
-
-	const isXl = new MediaQuery('(min-width: 1280px)');
-	let sidebarOpen = $state(true);
-	$effect(() => { sidebarOpen = isXl.current; });
-
-	let theme = $state<Theme>('system');
-
-	onMount(() => {
-		initTheme();
-		theme = getStoredTheme();
-		ensureGuestPlayer();
-	});
-
-	function cycleTheme() {
-		const next: Theme = theme === 'dark' ? 'light' : 'dark';
-		theme = next;
-		setTheme(next);
-	}
-
-	const nav = [
-		{ href: '/', label: 'Home', icon: LayoutDashboard },
-		{ href: '/lists', label: 'Lists', icon: List, countKey: 'lists' },
-		{ href: '/boards', label: 'Boards', icon: LayoutGrid, countKey: 'boards' },
-		{ href: '/players', label: 'Players', icon: Users, countKey: 'players' },
-		{ href: '/sessions', label: 'Sessions', icon: History, countKey: 'sessions' },
-		{ href: '/tags', label: 'Tags', icon: Tags, countKey: 'tags' },
-		{ href: '/media', label: 'Media', icon: Image, countKey: 'media' },
-		{ href: '/trash', label: 'Trash', icon: Trash2, countKey: 'trash' }
+	const homeHref = resolve('/');
+	const mainNavItems = [
+		{ href: resolve('/lists'), label: 'Lists', icon: ListChecksIcon },
+		{ href: resolve('/activities'), label: 'Activities', icon: GamepadIcon },
+		{ href: resolve('/users'), label: 'Users', icon: UsersIcon },
+		{ href: resolve('/media'), label: 'Media', icon: ImagesIcon },
+		{ href: resolve('/tags'), label: 'Tags', icon: TagsIcon }
 	];
-
-	const bottomNav = [
-		{ href: '/settings', label: 'Settings', icon: Settings },
-		{ href: '/help', label: 'Help', icon: HelpCircle }
+	const footerNavItems = [
+		{ href: resolve('/trash'), label: 'Trash', icon: Trash2Icon },
+		{ href: resolve('/settings'), label: 'Settings', icon: SettingsIcon }
 	];
-
-	function isActive(href: string) {
-		if (href === '/') return page.url.pathname === '/';
-		return page.url.pathname.startsWith(href);
-	}
 </script>
 
-<Toaster richColors />
-<Sidebar.Provider bind:open={sidebarOpen}>
-	<MobileCloseSidebar />
-	<Sidebar.Root collapsible="icon">
-		<!-- Header: logo -->
-		<Sidebar.Header>
-			<div class="flex h-10 items-center px-2">
-				<span class="truncate text-base font-semibold tracking-tight group-data-[collapsible=icon]:hidden">MakeList</span>
-			</div>
-		</Sidebar.Header>
+<svelte:head><link rel="icon" href={favicon} /></svelte:head>
 
-		<!-- Main nav -->
+<Sidebar.Provider>
+	<Sidebar.Root collapsible="icon" class="*:bg-background">
+		<Sidebar.Header>
+			<Sidebar.Menu>
+				<Sidebar.MenuItem>
+					<Sidebar.MenuButton size="lg" class="group-data-[collapsible=icon]:justify-center">
+						{#snippet child({ props })}
+							<a href={homeHref} {...props}>
+								<ScrollTextIcon class="size-4" />
+								<span class="truncate font-semibold group-data-[collapsible=icon]:hidden">
+									Makelist
+								</span>
+							</a>
+						{/snippet}
+					</Sidebar.MenuButton>
+				</Sidebar.MenuItem>
+			</Sidebar.Menu>
+		</Sidebar.Header>
 		<Sidebar.Content>
 			<Sidebar.Group>
-				<Sidebar.Menu>
-					{#each nav as item}
-						<Sidebar.MenuItem>
-							<Sidebar.MenuButton isActive={isActive(item.href)} tooltipContent={item.label}>
-								{#snippet child({ props })}
-									<a href={item.href} {...props}>
-										<item.icon />
-										<span>{item.label}</span>
-									</a>
-								{/snippet}
-							</Sidebar.MenuButton>
-							{#if item.countKey && counts && counts[item.countKey as keyof NavCounts] > 0}
-								<Sidebar.MenuBadge>{counts[item.countKey as keyof NavCounts]}</Sidebar.MenuBadge>
-							{/if}
-						</Sidebar.MenuItem>
-					{/each}
-				</Sidebar.Menu>
+				<Sidebar.GroupContent>
+					<Sidebar.Menu>
+						{#each mainNavItems as item (item.href)}
+							<Sidebar.MenuItem>
+								<Sidebar.MenuButton
+									isActive={page.url.pathname.startsWith(item.href)}
+									tooltipContent={item.label}
+								>
+									{#snippet child({ props })}
+										<a href={item.href} {...props}>
+											<item.icon />
+											<span>{item.label}</span>
+										</a>
+									{/snippet}
+								</Sidebar.MenuButton>
+							</Sidebar.MenuItem>
+						{/each}
+					</Sidebar.Menu>
+				</Sidebar.GroupContent>
 			</Sidebar.Group>
 		</Sidebar.Content>
-
-		<!-- Footer: settings, help, theme toggle -->
 		<Sidebar.Footer>
 			<Sidebar.Menu>
-				{#each bottomNav as item}
+				{#each footerNavItems as item (item.href)}
 					<Sidebar.MenuItem>
-						<Sidebar.MenuButton isActive={isActive(item.href)} tooltipContent={item.label}>
+						<Sidebar.MenuButton
+							isActive={page.url.pathname.startsWith(item.href)}
+							tooltipContent={item.label}
+						>
 							{#snippet child({ props })}
 								<a href={item.href} {...props}>
 									<item.icon />
@@ -128,31 +90,18 @@
 						</Sidebar.MenuButton>
 					</Sidebar.MenuItem>
 				{/each}
-				<Sidebar.MenuItem>
-					<Sidebar.MenuButton onclick={cycleTheme} tooltipContent={theme === 'dark' ? 'Switch to Light' : 'Switch to Dark'}>
-						{#if theme === 'dark'}
-							<Moon />
-							<span>Dark</span>
-						{:else}
-							<Sun />
-							<span>Light</span>
-						{/if}
-					</Sidebar.MenuButton>
-				</Sidebar.MenuItem>
 			</Sidebar.Menu>
 		</Sidebar.Footer>
+		<Sidebar.Rail />
 	</Sidebar.Root>
-
-	<!-- Main content area -->
-	<Sidebar.Inset>
-		<header class="flex h-12 shrink-0 items-center gap-2 border-b border-border px-4">
-			<Sidebar.Trigger class="-ml-1" />
-			<div class="ml-auto">
-				<GlobalSearch />
-			</div>
+	<Sidebar.Inset class="bg-primary-foreground">
+		<header class="flex h-12 shrink-0 items-center gap-2 border-b border-border bg-background pl-2">
+			<Sidebar.Trigger />
 		</header>
-		<main class="flex-1 overflow-y-auto">
+		<main class="w-full max-w-7xl min-w-[28ch] flex-1 p-4">
 			{@render children()}
 		</main>
 	</Sidebar.Inset>
 </Sidebar.Provider>
+
+<Toaster />

@@ -1,275 +1,422 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import { Button } from '$lib/components/ui/button';
-	import { Badge } from '$lib/components/ui/badge';
-	import * as AlertDialog from '$lib/components/ui/alert-dialog';
-	import { Checkbox } from '$lib/components/ui/checkbox';
-	import * as Table from '$lib/components/ui/table';
-	import {
-		createTable,
-		getCoreRowModel,
-		getSortedRowModel,
-		type ColumnDef,
-		type SortingState,
-		type RowSelectionState
-	} from '@tanstack/table-core';
-	import {
-		getTrash,
-		emptyTrash,
-		restoreList, purgeList,
-		restoreItem, purgeItem,
-		restoreBoard, purgeBoard,
-		restorePlayer, purgePlayer,
-		restoreMediaAsset, purgeMediaAsset,
-		restoreTag, purgeTag
-	} from '$lib/db/queries';
-	import { Trash2, RotateCcw, ArrowUpDown, ArrowUp, ArrowDown } from 'lucide-svelte';
-	import PageHeader from '$lib/components/PageHeader.svelte';
+	import { toast } from 'svelte-sonner';
+	import * as Tabs from '$lib/components/ui/tabs/index.js';
+	import * as Table from '$lib/components/ui/table/index.js';
+	import { Button } from '$lib/components/ui/button/index.js';
+	import * as AlertDialog from '$lib/components/ui/alert-dialog/index.js';
+	import * as q from '$lib/db/queries';
+	import { emptyTrash } from '$lib/db/trash';
+	import type { User, List, Item, Activity, MediaAsset } from '$lib/db/types';
+	import RotateCcwIcon from '@lucide/svelte/icons/rotate-ccw';
+	import Trash2Icon from '@lucide/svelte/icons/trash-2';
 
-	// ── Types ──────────────────────────────────────────────────────────────────
+	let retentionDays = $state(30);
+	let users = $state<User[]>([]);
+	let lists = $state<List[]>([]);
+	let items = $state<(Item & { listName?: string })[]>([]);
+	let activities = $state<Activity[]>([]);
+	let media = $state<MediaAsset[]>([]);
 
-	type TrashRow = {
-		id: string;
-		name: string;
-		type: 'List' | 'Item' | 'Board' | 'Player' | 'Media' | 'Tag';
-		deletedAt: Date;
-		onRestore: () => Promise<void>;
-		onPurge: () => Promise<void>;
-	};
-
-	// ── State ──────────────────────────────────────────────────────────────────
-
-	let rows = $state<TrashRow[]>([]);
-	let loading = $state(true);
-
-	onMount(async () => {
-		await load();
-		loading = false;
-	});
-
-	async function load() {
-		const trash = await getTrash();
-		const r: TrashRow[] = [];
-
-		for (const l of trash.lists) {
-			r.push({ id: `list-${l.id}`, name: l.name, type: 'List', deletedAt: l.deletedAt!,
-				onRestore: async () => { await restoreList(l.id!); await load(); },
-				onPurge:   async () => { await purgeList(l.id!);   await load(); }
-			});
-		}
-		for (const i of trash.items) {
-			r.push({ id: `item-${i.id}`, name: i.text, type: 'Item', deletedAt: i.deletedAt!,
-				onRestore: async () => { await restoreItem(i.id!); await load(); },
-				onPurge:   async () => { await purgeItem(i.id!);   await load(); }
-			});
-		}
-		for (const b of trash.boards) {
-			r.push({ id: `board-${b.id}`, name: b.name, type: 'Board', deletedAt: b.deletedAt!,
-				onRestore: async () => { await restoreBoard(b.id!); await load(); },
-				onPurge:   async () => { await purgeBoard(b.id!);   await load(); }
-			});
-		}
-		for (const p of trash.players) {
-			r.push({ id: `player-${p.id}`, name: p.name, type: 'Player', deletedAt: p.deletedAt!,
-				onRestore: async () => { await restorePlayer(p.id!); await load(); },
-				onPurge:   async () => { await purgePlayer(p.id!);   await load(); }
-			});
-		}
-		for (const m of trash.mediaAssets) {
-			r.push({ id: `media-${m.id}`, name: m.name, type: 'Media', deletedAt: m.deletedAt!,
-				onRestore: async () => { await restoreMediaAsset(m.id!); await load(); },
-				onPurge:   async () => { await purgeMediaAsset(m.id!);   await load(); }
-			});
-		}
-		for (const t of trash.tags) {
-			r.push({ id: `tag-${t.id}`, name: t.name, type: 'Tag', deletedAt: t.deletedAt!,
-				onRestore: async () => { await restoreTag(t.id!); await load(); },
-				onPurge:   async () => { await purgeTag(t.id!);   await load(); }
-			});
-		}
-
-		rows = r;
-	}
-
-	// ── Confirm dialog ─────────────────────────────────────────────────────────
-
-	let confirmOpen = $state(false);
-	let confirmTitle = $state('');
-	let confirmDescription = $state('');
-	let confirmAction = $state<() => Promise<void>>(() => Promise.resolve());
-
-	function requestConfirm(title: string, description: string, action: () => Promise<void>) {
-		confirmTitle = title;
-		confirmDescription = description;
-		confirmAction = action;
-		confirmOpen = true;
-	}
-
-	async function handleEmptyTrash() {
-		requestConfirm(
-			'Empty trash?',
-			'This will permanently delete everything in trash. This cannot be undone.',
-			async () => { await emptyTrash(); await load(); }
+	async function refresh() {
+		const settings = await q.getSettings();
+		retentionDays = settings.trashRetentionDays;
+		users = await q.listTrashedUsers();
+		lists = await q.listTrashedLists();
+		activities = await q.listTrashedActivities();
+		media = await q.listTrashedAssets();
+		const rawItems = await q.listAllTrashedItems();
+		items = await Promise.all(
+			rawItems.map(async (item) => ({ ...item, listName: (await q.getList(item.listId))?.name }))
 		);
 	}
 
-	// ── Data table ─────────────────────────────────────────────────────────────
+	onMount(refresh);
 
-	const columns: ColumnDef<TrashRow>[] = [
-		{ id: 'select', enableSorting: false },
-		{ id: 'name',      accessorKey: 'name',      header: 'Name',    enableSorting: true },
-		{ id: 'type',      accessorKey: 'type',      header: 'Type',    enableSorting: true },
-		{ id: 'deletedAt', accessorKey: 'deletedAt', header: 'Deleted', enableSorting: true },
-		{ id: 'actions', enableSorting: false },
-	];
-
-	let sorting = $state<SortingState>([{ id: 'deletedAt', desc: true }]);
-	let rowSelection = $state<RowSelectionState>({});
-
-	const table = $derived(
-		createTable({
-			data: rows,
-			columns,
-			state: { sorting, rowSelection, columnPinning: { left: [], right: [] } },
-			onStateChange() {},
-			onSortingChange(updater) {
-				sorting = typeof updater === 'function' ? updater(sorting) : updater;
-			},
-			onRowSelectionChange(updater) {
-				rowSelection = typeof updater === 'function' ? updater(rowSelection) : updater;
-			},
-			enableRowSelection: true,
-			getCoreRowModel: getCoreRowModel(),
-			getSortedRowModel: getSortedRowModel(),
-			renderFallbackValue: null,
-		})
-	);
-
-	const TYPE_VARIANT: Record<TrashRow['type'], 'default' | 'secondary' | 'outline'> = {
-		List:   'default',
-		Item:   'secondary',
-		Board:  'outline',
-		Player: 'outline',
-		Media:  'outline',
-		Tag:    'outline',
-	};
-
-	function formatDate(d: Date) {
-		return new Date(d).toLocaleDateString(undefined, { dateStyle: 'medium' });
+	function daysUntilPurge(deletedAt: number): number {
+		const ageDays = (Date.now() - deletedAt) / 86_400_000;
+		return Math.max(0, Math.ceil(retentionDays - ageDays));
 	}
+
+	async function restoreUser(id: string) {
+		await q.restoreUser(id);
+		toast.success('User restored');
+		await refresh();
+	}
+	async function purgeUser(id: string) {
+		await q.purgeUser(id);
+		toast.success('User permanently deleted');
+		await refresh();
+	}
+	async function restoreList(id: string) {
+		await q.restoreList(id);
+		toast.success('List restored');
+		await refresh();
+	}
+	async function purgeList(id: string) {
+		await q.purgeList(id);
+		toast.success('List permanently deleted');
+		await refresh();
+	}
+	async function restoreItem(id: string) {
+		await q.restoreItem(id);
+		toast.success('Item restored');
+		await refresh();
+	}
+	async function purgeItem(id: string) {
+		await q.purgeItem(id);
+		toast.success('Item permanently deleted');
+		await refresh();
+	}
+	async function restoreActivity(id: string) {
+		await q.restoreActivity(id);
+		toast.success('Activity restored');
+		await refresh();
+	}
+	async function purgeActivity(id: string) {
+		await q.purgeActivity(id);
+		toast.success('Activity permanently deleted');
+		await refresh();
+	}
+	async function restoreAsset(id: string) {
+		await q.restoreAsset(id);
+		toast.success('Media restored');
+		await refresh();
+	}
+	async function purgeAsset(id: string) {
+		await q.purgeAsset(id);
+		toast.success('Media permanently deleted');
+		await refresh();
+	}
+
+	async function handleEmptyTrash() {
+		await emptyTrash();
+		toast.success('Trash emptied');
+		await refresh();
+	}
+
+	const totalCount = $derived(
+		users.length + lists.length + items.length + activities.length + media.length
+	);
 </script>
 
-<svelte:head><title>Trash — MakeList</title></svelte:head>
+<div class="space-y-6">
+	<div class="flex items-center justify-between">
+		<div>
+			<h1 class="text-2xl font-semibold">Trash</h1>
+			<p class="text-muted-foreground">
+				Items are permanently deleted after {retentionDays} days, or empty the trash manually.
+			</p>
+		</div>
+		{#if totalCount > 0}
+			<AlertDialog.Root>
+				<AlertDialog.Trigger>
+					{#snippet child({ props })}
+						<Button {...props} variant="destructive" class="gap-1.5">
+							<Trash2Icon class="size-4" />
+							Empty Trash
+						</Button>
+					{/snippet}
+				</AlertDialog.Trigger>
+				<AlertDialog.Content>
+					<AlertDialog.Header>
+						<AlertDialog.Title>Empty trash?</AlertDialog.Title>
+						<AlertDialog.Description>
+							This permanently deletes all {totalCount} trashed items. This cannot be undone.
+						</AlertDialog.Description>
+					</AlertDialog.Header>
+					<AlertDialog.Footer>
+						<AlertDialog.Cancel>Cancel</AlertDialog.Cancel>
+						<AlertDialog.Action onclick={handleEmptyTrash}>Empty Trash</AlertDialog.Action>
+					</AlertDialog.Footer>
+				</AlertDialog.Content>
+			</AlertDialog.Root>
+		{/if}
+	</div>
 
-<div class="flex h-full flex-col">
-	<PageHeader crumbs={[{ label: 'Trash' }]}>
-		{#snippet actions()}
-			{#if rows.length > 0}
-				<Button variant="destructive" size="sm" onclick={handleEmptyTrash}>
-					<Trash2 size={14} /> Empty trash
-				</Button>
-			{/if}
-		{/snippet}
-	</PageHeader>
+	<Tabs.Root value="lists">
+		<Tabs.List>
+			<Tabs.Trigger value="lists">Lists ({lists.length})</Tabs.Trigger>
+			<Tabs.Trigger value="items">Items ({items.length})</Tabs.Trigger>
+			<Tabs.Trigger value="activities">Activities ({activities.length})</Tabs.Trigger>
+			<Tabs.Trigger value="users">Users ({users.length})</Tabs.Trigger>
+			<Tabs.Trigger value="media">Media ({media.length})</Tabs.Trigger>
+		</Tabs.List>
 
-	<!-- Table -->
-	<div class="flex-1 overflow-y-auto">
-		{#if loading}
-			<p class="p-6 text-sm text-muted-foreground">Loading…</p>
-		{:else}
-			<Table.Root>
-				<Table.Header>
-					{#each table.getHeaderGroups() as headerGroup}
-						<Table.Row class="hover:bg-transparent">
-							{#each headerGroup.headers as header}
-								<Table.Head class={header.id === 'select' ? 'w-0' : header.column.getCanSort() ? '' : 'w-0'}>
-									{#if header.id === 'select'}
-										<Checkbox
-											checked={table.getIsAllRowsSelected()}
-											indeterminate={table.getIsSomeRowsSelected() && !table.getIsAllRowsSelected()}
-											onCheckedChange={() => table.toggleAllRowsSelected()}
-											aria-label="Select all"
-										/>
-									{:else if header.column.getCanSort()}
-										<Button variant="ghost" size="sm" class="-ml-2" onclick={() => header.column.toggleSorting()}>
-											{header.column.columnDef.header as string}
-											{#if header.column.getIsSorted() === 'asc'}
-												<ArrowUp size={14} />
-											{:else if header.column.getIsSorted() === 'desc'}
-												<ArrowDown size={14} />
-											{:else}
-												<ArrowUpDown size={14} class="text-muted-foreground/50" />
-											{/if}
-										</Button>
-									{/if}
-								</Table.Head>
-							{/each}
+		<Tabs.Content value="lists" class="pt-4">
+			{#if lists.length === 0}
+				<p class="text-muted-foreground">No trashed lists.</p>
+			{:else}
+				<Table.Root>
+					<Table.Header>
+						<Table.Row>
+							<Table.Head>Name</Table.Head>
+							<Table.Head>Purges in</Table.Head>
+							<Table.Head class="text-right">Actions</Table.Head>
 						</Table.Row>
-					{/each}
-				</Table.Header>
-				<Table.Body>
-					{#if rows.length === 0}
-						<Table.Row class="hover:bg-transparent border-0">
-							<Table.Cell colspan={5} class="pt-16 text-center text-sm text-muted-foreground">
-								Trash is empty.
-							</Table.Cell>
-						</Table.Row>
-					{:else}
-						{#each table.getRowModel().rows as row (row.id)}
-							{@const item = row.original}
+					</Table.Header>
+					<Table.Body>
+						{#each lists as list (list.id)}
 							<Table.Row>
-								<Table.Cell class="w-0 px-2">
-									<Checkbox
-										checked={row.getIsSelected()}
-										onCheckedChange={() => row.toggleSelected()}
-										aria-label="Select row"
-									/>
-								</Table.Cell>
-								<Table.Cell class="font-medium">{item.name}</Table.Cell>
-								<Table.Cell>
-									<Badge variant={TYPE_VARIANT[item.type]}>{item.type}</Badge>
-								</Table.Cell>
-								<Table.Cell class="text-muted-foreground">{formatDate(item.deletedAt)}</Table.Cell>
-								<Table.Cell class="text-right">
-									<div class="flex items-center justify-end gap-1">
-										<Button variant="ghost" size="icon-sm" onclick={item.onRestore} title="Restore">
-											<RotateCcw size={14} />
-										</Button>
-										<Button
-											variant="ghost"
-											size="icon-sm"
-											title="Delete permanently"
-											class="text-muted-foreground hover:text-destructive"
-											onclick={() => requestConfirm(
-												`Delete "${item.name}" permanently?`,
-												'This cannot be undone.',
-												item.onPurge
-											)}
-										>
-											<Trash2 size={14} />
-										</Button>
-									</div>
+								<Table.Cell>{list.name}</Table.Cell>
+								<Table.Cell>{daysUntilPurge(list.deletedAt)} days</Table.Cell>
+								<Table.Cell class="flex justify-end gap-2">
+									<Button
+										variant="outline"
+										size="sm"
+										onclick={() => restoreList(list.id)}
+										class="gap-1.5"
+									>
+										<RotateCcwIcon class="size-4" />
+										Restore
+									</Button>
+									<AlertDialog.Root>
+										<AlertDialog.Trigger>
+											{#snippet child({ props })}
+												<Button {...props} variant="destructive" size="sm">Delete</Button>
+											{/snippet}
+										</AlertDialog.Trigger>
+										<AlertDialog.Content>
+											<AlertDialog.Header>
+												<AlertDialog.Title>Permanently delete "{list.name}"?</AlertDialog.Title>
+												<AlertDialog.Description
+													>This also deletes its items. This cannot be undone.</AlertDialog.Description
+												>
+											</AlertDialog.Header>
+											<AlertDialog.Footer>
+												<AlertDialog.Cancel>Cancel</AlertDialog.Cancel>
+												<AlertDialog.Action onclick={() => purgeList(list.id)}
+													>Delete</AlertDialog.Action
+												>
+											</AlertDialog.Footer>
+										</AlertDialog.Content>
+									</AlertDialog.Root>
 								</Table.Cell>
 							</Table.Row>
 						{/each}
-					{/if}
-				</Table.Body>
-			</Table.Root>
-		{/if}
-	</div>
-</div>
+					</Table.Body>
+				</Table.Root>
+			{/if}
+		</Tabs.Content>
 
-<AlertDialog.Root bind:open={confirmOpen}>
-	<AlertDialog.Content>
-		<AlertDialog.Header>
-			<AlertDialog.Title>{confirmTitle}</AlertDialog.Title>
-			<AlertDialog.Description>{confirmDescription}</AlertDialog.Description>
-		</AlertDialog.Header>
-		<AlertDialog.Footer>
-			<AlertDialog.Cancel>Cancel</AlertDialog.Cancel>
-			<AlertDialog.Action onclick={async () => { confirmOpen = false; await confirmAction(); }} class="bg-destructive text-destructive-foreground hover:bg-destructive/90">
-				Delete permanently
-			</AlertDialog.Action>
-		</AlertDialog.Footer>
-	</AlertDialog.Content>
-</AlertDialog.Root>
+		<Tabs.Content value="items" class="pt-4">
+			{#if items.length === 0}
+				<p class="text-muted-foreground">No trashed items.</p>
+			{:else}
+				<Table.Root>
+					<Table.Header>
+						<Table.Row>
+							<Table.Head>Title</Table.Head>
+							<Table.Head>List</Table.Head>
+							<Table.Head>Purges in</Table.Head>
+							<Table.Head class="text-right">Actions</Table.Head>
+						</Table.Row>
+					</Table.Header>
+					<Table.Body>
+						{#each items as item (item.id)}
+							<Table.Row>
+								<Table.Cell>{item.title}</Table.Cell>
+								<Table.Cell class="text-muted-foreground">{item.listName ?? '—'}</Table.Cell>
+								<Table.Cell>{daysUntilPurge(item.deletedAt)} days</Table.Cell>
+								<Table.Cell class="flex justify-end gap-2">
+									<Button
+										variant="outline"
+										size="sm"
+										onclick={() => restoreItem(item.id)}
+										class="gap-1.5"
+									>
+										<RotateCcwIcon class="size-4" />
+										Restore
+									</Button>
+									<AlertDialog.Root>
+										<AlertDialog.Trigger>
+											{#snippet child({ props })}
+												<Button {...props} variant="destructive" size="sm">Delete</Button>
+											{/snippet}
+										</AlertDialog.Trigger>
+										<AlertDialog.Content>
+											<AlertDialog.Header>
+												<AlertDialog.Title>Permanently delete "{item.title}"?</AlertDialog.Title>
+												<AlertDialog.Description>This cannot be undone.</AlertDialog.Description>
+											</AlertDialog.Header>
+											<AlertDialog.Footer>
+												<AlertDialog.Cancel>Cancel</AlertDialog.Cancel>
+												<AlertDialog.Action onclick={() => purgeItem(item.id)}
+													>Delete</AlertDialog.Action
+												>
+											</AlertDialog.Footer>
+										</AlertDialog.Content>
+									</AlertDialog.Root>
+								</Table.Cell>
+							</Table.Row>
+						{/each}
+					</Table.Body>
+				</Table.Root>
+			{/if}
+		</Tabs.Content>
+
+		<Tabs.Content value="activities" class="pt-4">
+			{#if activities.length === 0}
+				<p class="text-muted-foreground">No trashed activities.</p>
+			{:else}
+				<Table.Root>
+					<Table.Header>
+						<Table.Row>
+							<Table.Head>Name</Table.Head>
+							<Table.Head>Purges in</Table.Head>
+							<Table.Head class="text-right">Actions</Table.Head>
+						</Table.Row>
+					</Table.Header>
+					<Table.Body>
+						{#each activities as activity (activity.id)}
+							<Table.Row>
+								<Table.Cell>{activity.name}</Table.Cell>
+								<Table.Cell>{daysUntilPurge(activity.deletedAt)} days</Table.Cell>
+								<Table.Cell class="flex justify-end gap-2">
+									<Button
+										variant="outline"
+										size="sm"
+										onclick={() => restoreActivity(activity.id)}
+										class="gap-1.5"
+									>
+										<RotateCcwIcon class="size-4" />
+										Restore
+									</Button>
+									<AlertDialog.Root>
+										<AlertDialog.Trigger>
+											{#snippet child({ props })}
+												<Button {...props} variant="destructive" size="sm">Delete</Button>
+											{/snippet}
+										</AlertDialog.Trigger>
+										<AlertDialog.Content>
+											<AlertDialog.Header>
+												<AlertDialog.Title>Permanently delete "{activity.name}"?</AlertDialog.Title>
+												<AlertDialog.Description>This cannot be undone.</AlertDialog.Description>
+											</AlertDialog.Header>
+											<AlertDialog.Footer>
+												<AlertDialog.Cancel>Cancel</AlertDialog.Cancel>
+												<AlertDialog.Action onclick={() => purgeActivity(activity.id)}
+													>Delete</AlertDialog.Action
+												>
+											</AlertDialog.Footer>
+										</AlertDialog.Content>
+									</AlertDialog.Root>
+								</Table.Cell>
+							</Table.Row>
+						{/each}
+					</Table.Body>
+				</Table.Root>
+			{/if}
+		</Tabs.Content>
+
+		<Tabs.Content value="users" class="pt-4">
+			{#if users.length === 0}
+				<p class="text-muted-foreground">No trashed users.</p>
+			{:else}
+				<Table.Root>
+					<Table.Header>
+						<Table.Row>
+							<Table.Head>Name</Table.Head>
+							<Table.Head>Purges in</Table.Head>
+							<Table.Head class="text-right">Actions</Table.Head>
+						</Table.Row>
+					</Table.Header>
+					<Table.Body>
+						{#each users as user (user.id)}
+							<Table.Row>
+								<Table.Cell>{user.name}</Table.Cell>
+								<Table.Cell>{daysUntilPurge(user.deletedAt)} days</Table.Cell>
+								<Table.Cell class="flex justify-end gap-2">
+									<Button
+										variant="outline"
+										size="sm"
+										onclick={() => restoreUser(user.id)}
+										class="gap-1.5"
+									>
+										<RotateCcwIcon class="size-4" />
+										Restore
+									</Button>
+									<AlertDialog.Root>
+										<AlertDialog.Trigger>
+											{#snippet child({ props })}
+												<Button {...props} variant="destructive" size="sm">Delete</Button>
+											{/snippet}
+										</AlertDialog.Trigger>
+										<AlertDialog.Content>
+											<AlertDialog.Header>
+												<AlertDialog.Title>Permanently delete "{user.name}"?</AlertDialog.Title>
+												<AlertDialog.Description>This cannot be undone.</AlertDialog.Description>
+											</AlertDialog.Header>
+											<AlertDialog.Footer>
+												<AlertDialog.Cancel>Cancel</AlertDialog.Cancel>
+												<AlertDialog.Action onclick={() => purgeUser(user.id)}
+													>Delete</AlertDialog.Action
+												>
+											</AlertDialog.Footer>
+										</AlertDialog.Content>
+									</AlertDialog.Root>
+								</Table.Cell>
+							</Table.Row>
+						{/each}
+					</Table.Body>
+				</Table.Root>
+			{/if}
+		</Tabs.Content>
+
+		<Tabs.Content value="media" class="pt-4">
+			{#if media.length === 0}
+				<p class="text-muted-foreground">No trashed media.</p>
+			{:else}
+				<Table.Root>
+					<Table.Header>
+						<Table.Row>
+							<Table.Head>File</Table.Head>
+							<Table.Head>Kind</Table.Head>
+							<Table.Head>Purges in</Table.Head>
+							<Table.Head class="text-right">Actions</Table.Head>
+						</Table.Row>
+					</Table.Header>
+					<Table.Body>
+						{#each media as asset (asset.id)}
+							<Table.Row>
+								<Table.Cell>{asset.fileName ?? asset.url ?? asset.id}</Table.Cell>
+								<Table.Cell class="text-muted-foreground">{asset.kind}</Table.Cell>
+								<Table.Cell>{daysUntilPurge(asset.deletedAt)} days</Table.Cell>
+								<Table.Cell class="flex justify-end gap-2">
+									<Button
+										variant="outline"
+										size="sm"
+										onclick={() => restoreAsset(asset.id)}
+										class="gap-1.5"
+									>
+										<RotateCcwIcon class="size-4" />
+										Restore
+									</Button>
+									<AlertDialog.Root>
+										<AlertDialog.Trigger>
+											{#snippet child({ props })}
+												<Button {...props} variant="destructive" size="sm">Delete</Button>
+											{/snippet}
+										</AlertDialog.Trigger>
+										<AlertDialog.Content>
+											<AlertDialog.Header>
+												<AlertDialog.Title>Permanently delete this file?</AlertDialog.Title>
+												<AlertDialog.Description>This cannot be undone.</AlertDialog.Description>
+											</AlertDialog.Header>
+											<AlertDialog.Footer>
+												<AlertDialog.Cancel>Cancel</AlertDialog.Cancel>
+												<AlertDialog.Action onclick={() => purgeAsset(asset.id)}
+													>Delete</AlertDialog.Action
+												>
+											</AlertDialog.Footer>
+										</AlertDialog.Content>
+									</AlertDialog.Root>
+								</Table.Cell>
+							</Table.Row>
+						{/each}
+					</Table.Body>
+				</Table.Root>
+			{/if}
+		</Tabs.Content>
+	</Tabs.Root>
+</div>

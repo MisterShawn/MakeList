@@ -1,93 +1,83 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import { getLists } from '$lib/db/queries';
-	import { getBoards } from '$lib/db/queries';
-	import { getPlayers } from '$lib/db/queries';
-	import type { List, Board, Player } from '$lib/db/schema';
-	import { Button } from '$lib/components/ui/button';
-	import { List as ListIcon, LayoutGrid, Users, Plus } from 'lucide-svelte';
-	import PageHeader from '$lib/components/PageHeader.svelte';
+	import { resolve } from '$app/paths';
+	import * as Card from '$lib/components/ui/card/index.js';
+	import { buttonVariants } from '$lib/components/ui/button/index.js';
+	import * as MakeCard from '$lib/components/make-card/index.js';
+	import * as q from '$lib/db/queries';
+	import ListChecksIcon from '@lucide/svelte/icons/list-checks';
+	import GamepadIcon from '@lucide/svelte/icons/gamepad-2';
+	import UsersIcon from '@lucide/svelte/icons/users';
+	import ArrowRightIcon from '@lucide/svelte/icons/arrow-right';
 
-	let lists = $state<List[]>([]);
-	let boards = $state<Board[]>([]);
-	let players = $state<Player[]>([]);
-	let loading = $state(true);
+	let listCount = $state(0);
+	let activityCount = $state(0);
+	let userCount = $state(0);
 
 	onMount(async () => {
-		[lists, boards, players] = await Promise.all([getLists(), getBoards(), getPlayers()]);
-		loading = false;
+		const [lists, activities, users] = await Promise.all([
+			q.listActiveLists(),
+			q.listActiveActivities(),
+			q.listActiveUsers()
+		]);
+		listCount = lists.length;
+		activityCount = activities.length;
+		userCount = users.length;
 	});
+
+	const quickLinks = [
+		{
+			href: resolve('/lists'),
+			title: 'Lists',
+			description: 'Build and organize collections of items.',
+			icon: ListChecksIcon,
+			count: () => listCount
+		},
+		{
+			href: resolve('/activities'),
+			title: 'Activities',
+			description: 'Flash cards, quizzes, matching, and more.',
+			icon: GamepadIcon,
+			count: () => activityCount
+		},
+		{
+			href: resolve('/users'),
+			title: 'Users',
+			description: 'Track progress for each learner.',
+			icon: UsersIcon,
+			count: () => userCount
+		}
+	];
 </script>
 
-<svelte:head>
-	<title>MakeList</title>
-</svelte:head>
+<div class="space-y-6">
+	<div>
+		<h1 class="text-2xl font-semibold">Welcome to Makelist</h1>
+		<p class="text-muted-foreground">
+			Build lists of items, then turn them into learning activities.
+		</p>
+	</div>
 
-<div class="flex h-full flex-col">
-	<PageHeader crumbs={[{ label: 'Home' }]} />
-
-	<div class="flex-1 overflow-y-auto p-6">
-	{#if loading}
-		<p class="text-muted-foreground text-sm">Loading…</p>
-	{:else}
-		<div class="grid gap-4 sm:grid-cols-3">
-			<!-- Lists card -->
-			<a
-				href="/lists"
-				class="group flex flex-col gap-3 rounded-lg border border-border bg-card p-5 transition-colors hover:bg-accent"
-			>
-				<div class="flex items-center justify-between">
-					<ListIcon size={20} class="text-muted-foreground" />
-					<span class="text-2xl font-semibold">{lists.length}</span>
-				</div>
-				<div>
-					<p class="font-medium">Lists</p>
-					<p class="text-muted-foreground text-sm">{lists.length === 1 ? '1 list' : `${lists.length} lists`}</p>
-				</div>
-			</a>
-
-			<!-- Boards card -->
-			<a
-				href="/boards"
-				class="group flex flex-col gap-3 rounded-lg border border-border bg-card p-5 transition-colors hover:bg-accent"
-			>
-				<div class="flex items-center justify-between">
-					<LayoutGrid size={20} class="text-muted-foreground" />
-					<span class="text-2xl font-semibold">{boards.length}</span>
-				</div>
-				<div>
-					<p class="font-medium">Boards</p>
-					<p class="text-muted-foreground text-sm">{boards.length === 1 ? '1 board' : `${boards.length} boards`}</p>
-				</div>
-			</a>
-
-			<!-- Players card -->
-			<a
-				href="/players"
-				class="group flex flex-col gap-3 rounded-lg border border-border bg-card p-5 transition-colors hover:bg-accent"
-			>
-				<div class="flex items-center justify-between">
-					<Users size={20} class="text-muted-foreground" />
-					<span class="text-2xl font-semibold">{players.length}</span>
-				</div>
-				<div>
-					<p class="font-medium">Players</p>
-					<p class="text-muted-foreground text-sm">{players.length === 1 ? '1 player' : `${players.length} players`}</p>
-				</div>
-			</a>
-		</div>
-
-		{#if lists.length === 0 && boards.length === 0}
-			<div class="mt-12 flex flex-col items-center gap-4 text-center">
-				<p class="text-muted-foreground max-w-sm text-sm">
-					Get started by creating your first list. Add items, then build a board to quiz yourself.
-				</p>
-				<Button href="/lists">
-					<Plus size={16} />
-					New list
-				</Button>
-			</div>
-		{/if}
-	{/if}
+	<div class="grid gap-4 sm:grid-cols-3">
+		{#each quickLinks as link (link.href)}
+			<MakeCard.Root href={link.href}>
+				<MakeCard.Menu icon={link.icon} />
+				<Card.Header class="pr-8">
+					<Card.Title>{link.title}</Card.Title>
+				</Card.Header>
+				<Card.Content class="flex-1">
+					<Card.Description>{link.description}</Card.Description>
+				</Card.Content>
+				<Card.Footer>
+					<div class="flex w-full items-center justify-between">
+						<span class="text-sm text-muted-foreground">{link.count()}</span>
+						<span class={buttonVariants({ variant: 'ghost', size: 'sm', class: 'gap-1.5' })}>
+							Open
+							<ArrowRightIcon class="size-4" />
+						</span>
+					</div>
+				</Card.Footer>
+			</MakeCard.Root>
+		{/each}
 	</div>
 </div>

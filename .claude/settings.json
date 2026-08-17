@@ -1,26 +1,16 @@
 {
-  "permissions": {
-    "allow": [
-      "Bash(npx shadcn-svelte@latest add checkbox)",
-      "Bash(npx shadcn-svelte@latest add drawer)",
-      "Bash(curl -s http://localhost:5174/)",
-      "Bash(curl -s \"http://localhost:5174/lists\")",
-      "Bash(npx shadcn-svelte@latest add tabs)",
-      "Bash(npx shadcn-svelte@latest add card --yes)",
-      "Bash(npx shadcn-svelte@latest add popover --yes)",
-      "Bash(npx tsc:*)",
-      "Bash(npm ls:*)",
-      "Bash(npm exec *)",
-      "Bash(npx shadcn-svelte@latest add button-group --overwrite)",
-      "Bash(kill %1)",
-      "Bash(curl -s \"https://shadcn-svelte.com/docs/components/button-group.md\")",
-      "WebFetch(domain:raw.githubusercontent.com)",
-      "mcp__github__search_code",
-      "mcp__github__get_file_contents",
-      "WebFetch(domain:api.github.com)",
-      "WebFetch(domain:github.com)",
-      "Bash(npx shadcn-svelte@latest add alert-dialog)",
-      "Bash(npx shadcn-svelte@latest add alert-dialog --overwrite)"
-    ]
-  }
+	"permissions": {
+		"allow": [
+			"Bash(npm run check)",
+			"Bash(npm run check:watch)",
+			"Bash(npm run lint)",
+			"Bash(npm run dev)",
+			"Bash(npm install)",
+			"Bash(npm install *)",
+			"Bash(find *)",
+			"Bash(curl -s http://localhost:*)",
+			"Bash(curl -sf http://localhost:*)",
+			"Bash(curl -s -o /dev/null -w * http://localhost:*)"
+		]
+	}
 }

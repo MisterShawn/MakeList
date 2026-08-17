@@ -1,158 +1,61 @@
 import Dexie, { type EntityTable } from 'dexie';
+import type {
+	User,
+	List,
+	Item,
+	Activity,
+	ActivityList,
+	AttemptResult,
+	MediaAsset,
+	AppSettings,
+	TagColor
+} from './types';
 
-// ─── Types ────────────────────────────────────────────────────────────────────
+export class MakelistDB extends Dexie {
+	users!: EntityTable<User, 'id'>;
+	lists!: EntityTable<List, 'id'>;
+	items!: EntityTable<Item, 'id'>;
+	activities!: EntityTable<Activity, 'id'>;
+	activityLists!: EntityTable<ActivityList, 'id'>;
+	attemptResults!: EntityTable<AttemptResult, 'id'>;
+	mediaAssets!: EntityTable<MediaAsset, 'id'>;
+	settings!: EntityTable<AppSettings, 'id'>;
+	tagColors!: EntityTable<TagColor, 'tag'>;
 
-export interface List {
-	id?: number;
-	name: string;
-	description?: string;
-	folderId?: number;
-	tagIds: number[];
-	deletedAt?: Date;
-	createdAt: Date;
-	updatedAt: Date;
+	constructor() {
+		super('makelist');
+
+		// v1: baseline schema. Only props that need to be queried/sorted/filtered are
+		// indexed here — fields[]/config/detail stay as unindexed JSON blobs, so new
+		// item field types, activity types, or attempt-detail shapes never require a
+		// new .version() call, only a new table or a new *indexed* prop does.
+		this.version(1).stores({
+			users: 'id, deletedAt, order',
+			lists: 'id, name, listType, seedKey, deletedAt, order',
+			items: 'id, listId, deletedAt, order',
+			activities: 'id, name, type, deletedAt, order',
+			activityLists: 'id, activityId, listId, [activityId+listId], deletedAt',
+			attemptResults: 'id, activityId, userId, type, deletedAt, completedAt, [activityId+userId]',
+			mediaAssets: 'id, kind, deletedAt',
+			settings: 'id'
+		});
+
+		// v2: adds a multi-entry `*tags` index to the three taggable tables (tags itself
+		// stays an unindexed string[] the rest of the time — this index only exists so a
+		// tag's detail page can look up "everything tagged X" without a full table scan).
+		this.version(2).stores({
+			lists: 'id, name, listType, seedKey, deletedAt, order, *tags',
+			activities: 'id, name, type, deletedAt, order, *tags',
+			mediaAssets: 'id, kind, deletedAt, *tags'
+		});
+
+		// v3: per-tag color assignments, keyed directly by the tag string (no BaseEntity —
+		// tags aren't independently created/trashed, a color row is just harmlessly
+		// orphaned once nothing carries that tag anymore).
+		this.version(3).stores({
+			tagColors: 'tag'
+		});
+	}
 }
 
-export interface Item {
-	id?: number;
-	listId: number;
-	text: string;
-	subtext?: string;
-	/** MediaAsset id for static image */
-	mediaId?: number;
-	/** MediaAsset id for animated GIF */
-	gifId?: number;
-	/** OpenMoji hex code e.g. "1F600" */
-	emojiId?: string;
-	/** MediaAsset id for audio */
-	audioId?: number;
-	/** OKLCH color string used as card background in boards */
-	color?: string;
-	position: number;
-	tagIds: number[];
-	deletedAt?: Date;
-	createdAt: Date;
-	updatedAt: Date;
-}
-
-export type BoardType =
-	| 'flashcard'
-	| 'multiple-choice'
-	| 'matching'
-	| 'memory'
-	| 'quiz'
-	| 'choice-board';
-
-export interface Board {
-	id?: number;
-	name: string;
-	type: BoardType;
-	/** Primary list */
-	listId: number;
-	/** Secondary list — used by choice-board */
-	list2Id?: number;
-	/** Board-specific config (timer, try-again, etc.) */
-	settings: Record<string, unknown>;
-	folderId?: number;
-	tagIds: number[];
-	deletedAt?: Date;
-	createdAt: Date;
-	updatedAt: Date;
-}
-
-export interface Session {
-	id?: number;
-	boardId: number;
-	playerId?: number;
-	startedAt: Date;
-	completedAt?: Date;
-	score?: number;
-	deletedAt?: Date;
-	createdAt: Date;
-	updatedAt: Date;
-}
-
-export interface SessionAnswer {
-	id?: number;
-	sessionId: number;
-	itemId: number;
-	correct: boolean;
-	responseMs?: number;
-	attempt: number;
-	createdAt: Date;
-}
-
-export interface Tag {
-	id?: number;
-	name: string;
-	color: string;
-	deletedAt?: Date;
-	createdAt: Date;
-}
-
-export type FolderScope = 'list' | 'board' | 'media' | 'player';
-
-export interface Folder {
-	id?: number;
-	name: string;
-	parentId?: number;
-	scope: FolderScope;
-	deletedAt?: Date;
-	createdAt: Date;
-}
-
-export type MediaType = 'image' | 'gif' | 'audio';
-
-export interface MediaAsset {
-	id?: number;
-	name: string;
-	type: MediaType;
-	/** base64 data URL */
-	dataUrl: string;
-	tagIds: number[];
-	folderId?: number;
-	deletedAt?: Date;
-	createdAt: Date;
-}
-
-export interface Player {
-	id?: number;
-	name: string;
-	/** OpenMoji hex code */
-	avatarEmoji?: string;
-	tagIds: number[];
-	folderId?: number;
-	/** True for built-in players (e.g. Guest) that cannot be deleted */
-	isSystem?: boolean;
-	deletedAt?: Date;
-	createdAt: Date;
-	updatedAt: Date;
-}
-
-// ─── Database ─────────────────────────────────────────────────────────────────
-
-export type MakeListDB = Dexie & {
-	lists: EntityTable<List, 'id'>;
-	items: EntityTable<Item, 'id'>;
-	boards: EntityTable<Board, 'id'>;
-	sessions: EntityTable<Session, 'id'>;
-	sessionAnswers: EntityTable<SessionAnswer, 'id'>;
-	tags: EntityTable<Tag, 'id'>;
-	folders: EntityTable<Folder, 'id'>;
-	mediaAssets: EntityTable<MediaAsset, 'id'>;
-	players: EntityTable<Player, 'id'>;
-};
-
-export const db = new Dexie('makelist') as MakeListDB;
-
-db.version(1).stores({
-	lists: '++id, folderId, deletedAt, *tagIds',
-	items: '++id, listId, position, deletedAt, *tagIds',
-	boards: '++id, type, listId, list2Id, folderId, deletedAt, *tagIds',
-	sessions: '++id, boardId, playerId, startedAt, completedAt, deletedAt',
-	sessionAnswers: '++id, sessionId, itemId, correct, attempt',
-	tags: '++id, name, deletedAt',
-	folders: '++id, parentId, scope, deletedAt',
-	mediaAssets: '++id, type, folderId, deletedAt, *tagIds',
-	players: '++id, folderId, deletedAt, *tagIds'
-});
+export const db = new MakelistDB();
